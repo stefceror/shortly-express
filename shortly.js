@@ -2,7 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var ex = require('express-session');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -13,6 +13,19 @@ var Click = require('./app/models/click');
 
 var app = express();
 
+//app.use(ex({secret: 'test',
+//  cookie: {maxAge: 60000}
+//}));
+
+app.use(function(req, res, next) {
+  console.log(req.sessionID);
+  next();
+});
+
+//app.get('/testpage', function(req, res) {
+//  console.log(req.session);
+//});
+
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 app.use(partials());
@@ -22,25 +35,41 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+// app.use(function(req, res, next) {
+//   if(!req.sessionID) {
+//     res.redirect('/login');
+//   }
+//   next();
+// });
 
-app.get('/', 
+app.get('/',
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
+app.get('/login',
+function(req, res) {
+  res.render('login');
+});
+
+app.get('/signup',
+function(req, res) {
+  res.render('signup');
+});
+
+app.get('/create',
 function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
+app.get('/links',
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+app.post('/links',
 function(req, res) {
   var uri = req.body.url;
 
@@ -77,7 +106,25 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+app.post('/signup', function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+  new User({ username: username }).fetch().then(function(found) {
+    if (found) {
+      res.redirect('/login');
+    } else {
+      var user = new User({
+        username: username,
+        password: password
+      });
 
+      user.save().then(function(newUser) {
+        Users.add(newUser);
+        res.redirect('/');
+      });
+    }
+  });
+});
 
 
 /************************************************************/
@@ -108,5 +155,5 @@ app.get('/*', function(req, res) {
   });
 });
 
-console.log('Shortly is listening on 4568');
-app.listen(4568);
+console.log('Shortly is listening on 4000');
+app.listen(4000);
